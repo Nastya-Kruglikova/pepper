@@ -28,28 +28,39 @@ except ImportError:
 logger = logging.getLogger('pepper')
 
 
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
+# from requests.adapters import HTTPAdapter
+# from requests.packages.urllib3.poolmanager import PoolManager
 
 
-class SSLAdapter(HTTPAdapter):
-    """"Transport adapter" that allows us to use SSLv3."""
+# class SSLAdapter(HTTPAdapter):
+#     """"Transport adapter" that allows us to use SSLv3."""
 
-    def __init__(self, ssl_version=None, **kwargs):
-        self.ssl_version = ssl_version
+#     def __init__(self, ssl_version=None, **kwargs):
+#         self.ssl_version = ssl_version
 
-        super(SSLAdapter, self).__init__(**kwargs)
+#         super(SSLAdapter, self).__init__(**kwargs)
 
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=ssl.PROTOCOL_TLSv1)
+#     def init_poolmanager(self, connections, maxsize, block=False):
+#         self.poolmanager = PoolManager(num_pools=connections,
+#                                        maxsize=maxsize,
+#                                        block=block,
+#                                        ssl_version=ssl.PROTOCOL_TLSv1)
 
-    def proxy_manager_for(self, proxy, **proxy_kwargs):
-        # This method is called when there is a proxy.
-        proxy_kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
-        return super(ForceTLSV1Adapter, self).proxy_manager_for(proxy, **proxy_kwargs)
+#     def proxy_manager_for(self, proxy, **proxy_kwargs):
+#         # This method is called when there is a proxy.
+#         proxy_kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+#         return super(ForceTLSV1Adapter, self).proxy_manager_for(proxy, **proxy_kwargs)
+
+
+from functools import wraps
+def sslwrap(func):
+    @wraps(func)
+    def bar(*args, **kw):
+        kw['ssl_version'] = ssl.PROTOCOL_TLSv1
+        return func(*args, **kw)
+    return bar
+
+ssl.wrap_socket = sslwrap(ssl.wrap_socket)
 
 
 class PepperException(Exception):
@@ -147,18 +158,18 @@ class Pepper(object):
         # Add auth header to request
         if self.auth and 'token' in self.auth and self.auth['token']:
             req.add_header('X-Auth-Token', self.auth['token'])
-        s = requests.Session()
-        s.mount(url, SSLAdapter())
-        ret = s.post(url, data=postdata, headers=headers, verify=False)
+        # s = requests.Session()
+        # s.mount(url, SSLAdapter())
+        # ret = s.post(url, data=postdata, headers=headers, verify=False)
         # Send request
+        if not (self._ssl_verify):
+            con = ssl.SSLContext(ssl.SSLv23_METHOD)
+            #con.check_hostname = False
+            #con.verify_mode = ssl.CERT_NONE
+            f = urlopen(req, context=con)
+        else:
+            f = urlopen(req)
         try:
-        # if not (self._ssl_verify):
-        #     con = SSL.Context(SSL.SSLv23_METHOD)
-        #     #con.check_hostname = False
-        #     #con.verify_mode = ssl.CERT_NONE
-        #     f = urlopen(req, context=con)
-        # else:
-        #     f = urlopen(req)
             ret = json.loads(f.read().decode('utf-8'))
         except (HTTPError, URLError) as exc:
             logger.debug('Error with request', exc_info=True)
