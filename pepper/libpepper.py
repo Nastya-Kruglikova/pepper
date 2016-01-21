@@ -29,7 +29,7 @@ logger = logging.getLogger('pepper')
 
 
 from requests.adapters import HTTPAdapter
-from urllib3.poolmanager import PoolManager
+from requests.packages.urllib3.poolmanager import PoolManager
 
 
 class SSLAdapter(HTTPAdapter):
@@ -41,14 +41,12 @@ class SSLAdapter(HTTPAdapter):
         super(SSLAdapter, self).__init__(**kwargs)
 
     def init_poolmanager(self, connections, maxsize, block=False):
-        print 'xfjklxdfhjkbnm,./'
         self.poolmanager = PoolManager(num_pools=connections,
                                        maxsize=maxsize,
                                        block=block,
                                        ssl_version=ssl.PROTOCOL_TLSv1)
 
     def proxy_manager_for(self, proxy, **proxy_kwargs):
-        print 'xfjklxsdfjdsnvd/kldasfjdfhjkbnm,./'
         # This method is called when there is a proxy.
         proxy_kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
         return super(ForceTLSV1Adapter, self).proxy_manager_for(proxy, **proxy_kwargs)
