@@ -163,7 +163,7 @@ class Pepper(object):
         # ret = s.post(url, data=postdata, headers=headers, verify=False)
         # Send request
         if not (self._ssl_verify):
-            con = ssl.SSLContext(ssl.SSLv23_METHOD)
+            con = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             #con.check_hostname = False
             #con.verify_mode = ssl.CERT_NONE
             f = urlopen(req, context=con)
