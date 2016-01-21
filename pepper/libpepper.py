@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import ssl
+import requests
 try:
     ssl._create_default_https_context = ssl._create_stdlib_context
 except:
@@ -25,6 +26,32 @@ except ImportError:
     import urlparse
 
 logger = logging.getLogger('pepper')
+
+
+from requests.adapters import HTTPAdapter
+from urllib3.poolmanager import PoolManager
+
+
+class SSLAdapter(HTTPAdapter):
+    """"Transport adapter" that allows us to use SSLv3."""
+
+    def __init__(self, ssl_version=None, **kwargs):
+        self.ssl_version = ssl_version
+
+        super(SSLAdapter, self).__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False):
+        print 'xfjklxdfhjkbnm,./'
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=ssl.PROTOCOL_TLSv1)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        print 'xfjklxsdfjdsnvd/kldasfjdfhjkbnm,./'
+        # This method is called when there is a proxy.
+        proxy_kwargs['ssl_version'] = ssl.PROTOCOL_TLSv1
+        return super(ForceTLSV1Adapter, self).proxy_manager_for(proxy, **proxy_kwargs)
 
 
 class PepperException(Exception):
@@ -122,16 +149,18 @@ class Pepper(object):
         # Add auth header to request
         if self.auth and 'token' in self.auth and self.auth['token']:
             req.add_header('X-Auth-Token', self.auth['token'])
-
+        s = requests.Session()
+        s.mount(url, SSLAdapter())
+        ret = s.post(url, data=postdata, headers=headers, verify=False)
         # Send request
         try:
-            if not (self._ssl_verify):
-                con = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                #con.check_hostname = False
-                #con.verify_mode = ssl.CERT_NONE
-                f = urlopen(req, context=con)
-            else:
-                f = urlopen(req)
+        # if not (self._ssl_verify):
+        #     con = SSL.Context(SSL.SSLv23_METHOD)
+        #     #con.check_hostname = False
+        #     #con.verify_mode = ssl.CERT_NONE
+        #     f = urlopen(req, context=con)
+        # else:
+        #     f = urlopen(req)
             ret = json.loads(f.read().decode('utf-8'))
         except (HTTPError, URLError) as exc:
             logger.debug('Error with request', exc_info=True)
